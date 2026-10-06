@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   getCountryCallingCode,
   type CountryCode
@@ -10,22 +10,24 @@ import {
   BarChart3,
   BedDouble,
   Building2,
+  CalendarCheck,
   CalendarDays,
   Check,
   ChevronRight,
-  CircleDollarSign,
+  ConciergeBell,
   Clock3,
   CloudCog,
   Gauge,
+  Inbox,
   Link2,
   ListChecks,
   Menu,
-  MessageSquareText,
   Network,
+  ReceiptText,
   RefreshCw,
-  Search,
-  ShieldCheck,
+  SprayCan,
   Sparkles,
+  Tags,
   X,
   Zap
 } from "lucide-react";
@@ -65,9 +67,40 @@ const resources = [
   },
   {
     eyebrow: "HOTEL OPERATIONS",
-    title: "How channel bookings move through DMS Desk",
+    title: "How channel bookings move through the DMS platform",
     copy: "Follow a reservation from channel delivery to the front desk, invoice and audit trail.",
     icon: ListChecks
+  }
+];
+
+const faqs = [
+  {
+    question: "What is Destination Management System?",
+    answer: "DMS is designed to bring hotel reservations, rooms, rates and channel operations into one connected workspace. This preview shows how room mapping, inventory reviews and channel bookings fit into your property's daily workflow."
+  },
+  {
+    question: "How does channel management work with the PMS?",
+    answer: "The workflow starts by matching your PMS room types and rate plans to their channel equivalents. Your team can then review availability, update status and imported reservations with the relevant property context attached."
+  },
+  {
+    question: "Can I connect Booking.com, Agoda and Expedia?",
+    answer: "Booking.com, Agoda and Expedia are the channels featured in this preview. Connection availability and setup requirements need to be confirmed for your property. During a demo, ask the team to review the channels and accounts you already use."
+  },
+  {
+    question: "What should I prepare before setting up my property?",
+    answer: "Start with your room types, rate plans, inventory sources and existing channel property codes. Having these details ready makes it easier to review the mappings and identify any differences between your PMS and channel listings."
+  },
+  {
+    question: "What reservation and performance information is shown?",
+    answer: "The previews show reservation status, booking source, channel identifiers and revision details, alongside a booking-source report comparing reservation counts, booking value and revenue share. Ask for a walkthrough of the information relevant to your team's workflow."
+  },
+  {
+    question: "Does DMS support direct bookings and payments?",
+    answer: "Direct Bookings & Payments is part of the platform direction shown on this page. Confirm the booking flow, supported payment providers and availability with the team before planning your rollout."
+  },
+  {
+    question: "How can I explore DMS for my hotel?",
+    answer: "Use the Request a demo form above to enter your property details and the workflows you want to explore. This website is currently a preview; submitting the form saves the request in this browser only and does not yet send it to the DMS team."
   }
 ];
 
@@ -75,14 +108,51 @@ const footerColumns = [
   { title: "Platform", links: ["Dashboard", "Front Desk", "Reservations", "Rooms & Rates"] },
   { title: "Operations", links: ["Housekeeping", "Night Audit", "Financials", "Reports"] },
   { title: "Distribution", links: ["Channel Manager", "Travel Agents", "Booking Engine"] },
-  { title: "Company", links: ["About", "Contact", "Request Demo", "Sign in"] }
+  { title: "Company", links: ["About", "Contact", "FAQ", "Request Demo", "Sign in"] }
 ];
 
 export default function ChannelManagerLandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [country, setCountry] = useState<CountryCode>("LK");
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("LK");
+
+  useEffect(() => {
+    let previousY = window.scrollY;
+    let frame = 0;
+
+    const updateHeader = () => {
+      frame = 0;
+      const currentY = window.scrollY;
+      setHeaderScrolled(currentY > 64);
+
+      if (currentY < 100 || menuOpen || document.activeElement?.closest(".siteHeader")) {
+        setHeaderVisible(true);
+        previousY = currentY;
+        return;
+      }
+
+      const movement = currentY - previousY;
+      if (Math.abs(movement) >= 8) {
+        setHeaderVisible(movement < 0);
+        previousY = currentY;
+      }
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateHeader);
+    };
+
+    updateHeader();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [menuOpen]);
 
   function submitDemoRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,7 +160,7 @@ export default function ChannelManagerLandingPage() {
     const payload = Object.fromEntries(new FormData(form).entries());
 
     try {
-      const storageKey = "dms-desk:landing:demo-requests";
+      const storageKey = "dms:landing:demo-requests";
       const current = JSON.parse(localStorage.getItem(storageKey) || "[]") as unknown[];
       localStorage.setItem(storageKey, JSON.stringify([...current, { ...payload, createdAt: new Date().toISOString() }]));
     } catch {
@@ -105,11 +175,15 @@ export default function ChannelManagerLandingPage() {
 
   return (
     <main className="siteShell">
-      <header className="siteHeader">
+      <header
+        className={`siteHeader ${headerVisible ? "" : "siteHeaderHidden"} ${headerScrolled ? "siteHeaderScrolled" : ""}`}
+        style={{ backdropFilter: "blur(22px) saturate(1.35)", WebkitBackdropFilter: "blur(22px) saturate(1.35)" }}
+        onFocusCapture={() => setHeaderVisible(true)}
+      >
         <div className="headerInner">
           <BrandLockup />
 
-          <nav className={`mainNav ${menuOpen ? "mainNavOpen" : ""}`} aria-label="Primary navigation">
+          <nav className={`mainNav ${menuOpen ? "mainNavOpen" : ""}`} aria-label="Primary navigation" style={{ backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)" }} onClick={() => setMenuOpen(false)}>
             <a href="#platform">Platform</a>
             <a href="#features">Features</a>
             <a href="#workflow">Workflow</a>
@@ -132,49 +206,79 @@ export default function ChannelManagerLandingPage() {
         </div>
       </header>
 
-      <section className="hero section referenceHero" id="top">
-        <img
-          className="hotelHeroBackground"
-          src="/assets/hotel-room-hero-v2.png"
-          alt=""
-          aria-hidden="true"
-        />
-        <div className="heroCopy">
-
-          <span className="eyebrow"></span>
-          {/* <span className="eyebrow"><Layers3 /> Channel management</span> */}
-          <h1>DMS Desk<br />Channel <br /> Management</h1>
-          <p className="heroLead">Keep channel operations connected to your hotel&apos;s rooms, rates and reservation workflow.</p>
-          <p className="heroSupport">Map distribution settings, review inventory activity and bring channel reservations into the same workspace your team uses every day.</p>
-          <div className="heroPoints">
-            <span><Check /> Property-aware setup</span>
-            <span><Check /> PMS-connected workflow</span>
-            <span><Check /> Built for independent hotels</span>
+      <section className="productHero" id="top">
+        <div className="productHeroHead">
+          <span className="productHeroPill"><span><img src="/assets/dms-mark.png" alt="" /></span>Destination Management System · Hotel PMS</span>
+          <h1>Your whole hotel,<br /><em>in one workspace.</em></h1>
+          <p>Set up rooms and rate plans, take reservations, run the front desk, track housekeeping and invoices, and bring channel bookings into the same place.</p>
+          <div className="productHeroActions">
+            <a className="primaryButton" href="#request-demo">Request a demo <ArrowRight aria-hidden="true" /></a>
+            <a className="productHeroSecondary" href="#features">Explore the modules</a>
+          </div>
+          <ul className="productHeroChips" aria-label="What's inside DMS">
+            <li><ConciergeBell aria-hidden="true" />Front desk</li>
+            <li><CalendarCheck aria-hidden="true" />Reservations</li>
+            <li><BedDouble aria-hidden="true" />Rooms &amp; rates</li>
+            <li><SprayCan aria-hidden="true" />Housekeeping</li>
+            <li><ReceiptText aria-hidden="true" />Invoices</li>
+            <li><BarChart3 aria-hidden="true" />Reports</li>
+            <li className="productHeroPreviewChip"><Network aria-hidden="true" />Channel manager <small>Preview</small></li>
+          </ul>
+        </div>
+        <div className="productHeroStage">
+          <div className="productHeroFrame">
+            <div className="productHeroFrameBar"><i /><i /><i /><span>Channel Manager · Hotel DMS</span></div>
+            <div className="productHeroShot"><img src="/assets/shot-overview.webp" width="1800" height="963" alt="DMS Channel Manager overview showing reservations, revenue, channel connections and booking sources" /></div>
+          </div>
+          <div className="productHeroCallout productHeroCalloutBooking" aria-hidden="true">
+            <img src="/assets/agoda-mark.png" alt="" />
+            <div><strong>New booking · Agoda</strong><span>DMS-DEMO-0002 · 21–23 Sep · 1 room</span></div>
+            <b>Confirmed</b>
+          </div>
+          <div className="productHeroCallout productHeroCalloutSync" aria-hidden="true">
+            <span className="productHeroCalloutIcon"><RefreshCw /></span>
+            <div><strong>Reservation sync</strong><span>Last sync 2 minutes ago</span></div>
+            <b>Operational</b>
+          </div>
+          <div className="productHeroCallout productHeroCalloutRate" aria-hidden="true">
+            <span className="productHeroCalloutIcon"><Tags /></span>
+            <div><strong>Rate updated</strong><span>Deluxe Family Room · LKR 19,000</span></div>
           </div>
         </div>
+      </section>
 
-        <HeroChannelWorkspace />
+      <section className="demoSection section" aria-labelledby="request-demo-title">
+        <div className="demoIntro">
+          <span className="eyebrow">Request a demo</span>
+          <h2 id="request-demo-title">Connect your property</h2>
+          <p>Tell us a little about your hotel business.</p>
+          <ul className="demoPoints">
+            <li><Check aria-hidden="true" />Property-aware setup</li>
+            <li><Check aria-hidden="true" />PMS-connected workflow</li>
+            <li><Check aria-hidden="true" />Built for independent hotels</li>
+          </ul>
+          <a className="demoExplore" href="#features">Prefer to look around first? Explore the modules <ArrowRight aria-hidden="true" /></a>
+        </div>
         <form className="demoForm" id="request-demo" onSubmit={submitDemoRequest}>
-          <div className="connectFormHeading"><h2>Connect your property</h2><p>Tell us a little about your hotel business.</p></div>
           <div className="formGrid">
             <label>
-              <span className="srOnly">First name</span>
-              <input name="firstName" required autoComplete="given-name" placeholder="First Name*" />
+              <span className="fieldLabel">First name*</span>
+              <input name="firstName" required autoComplete="given-name" />
             </label>
             <label>
-              <span className="srOnly">Last name</span>
-              <input name="lastName" required autoComplete="family-name" placeholder="Last Name*" />
+              <span className="fieldLabel">Last name*</span>
+              <input name="lastName" required autoComplete="family-name" />
             </label>
             <label className="formWide">
-              <span className="srOnly">Business email</span>
-              <input name="email" required type="email" autoComplete="email" placeholder="Business Email*" />
+              <span className="fieldLabel">Business email*</span>
+              <input name="email" required type="email" autoComplete="email" placeholder="name@yourhotel.com" />
             </label>
             <label className="formWide">
-              <span className="srOnly">Company or hotel name</span>
-              <input name="propertyName" required autoComplete="organization" placeholder="Company/Hotel Name*" />
+              <span className="fieldLabel">Company or hotel name*</span>
+              <input name="propertyName" required autoComplete="organization" />
             </label>
             <label className="floatingSelect propertyCountryField">
-              <span>Country*</span>
+              <span className="fieldLabel">Country*</span>
               <select
                 name="country"
                 required
@@ -199,7 +303,7 @@ export default function ChannelManagerLandingPage() {
 
             <div className="formWide phoneRow">
               <label className="floatingSelect phoneCountrySelect">
-                <span>Calling code*</span>
+                <span className="fieldLabel">Calling code*</span>
                 <select
                   name="phoneCountry"
                   aria-label="Phone country and calling code"
@@ -214,7 +318,7 @@ export default function ChannelManagerLandingPage() {
                 </select>
               </label>
               <label className="phoneNumberField">
-                <span>Phone number*</span>
+                <span className="fieldLabel">Phone number*</span>
                 <span className="phonePrefix">+{getCountryCallingCode(phoneCountry)}</span>
                 <input
                   name="phoneNumber"
@@ -229,7 +333,7 @@ export default function ChannelManagerLandingPage() {
             </div>
 
             <label className="formWide floatingSelect businessTypeField">
-              <span>What&apos;s your business type?*</span>
+              <span className="fieldLabel">What&apos;s your business type?*</span>
               <select name="businessType" required defaultValue="">
                 <option value="" disabled>Select business type</option>
                 <option>Independent hotel</option>
@@ -245,7 +349,7 @@ export default function ChannelManagerLandingPage() {
           </div>
 
           <p className="formConsent">
-            By submitting your details, you confirm that you would like to receive marketing emails from DMS Desk and you agree to the storing and processing of your personal data by DMS Desk as described in our{" "}
+            By submitting your details, you confirm that you would like to receive marketing emails from Destination Management System and you agree to the storing and processing of your personal data by Destination Management System as described in our{" "}
             <a href="https://dms.lk/privacy-policy" target="_blank" rel="noreferrer">privacy policy</a>.
           </p>
 
@@ -263,7 +367,7 @@ export default function ChannelManagerLandingPage() {
         </form>
       </section>
 
-      <section className="benefits section" aria-label="DMS Desk benefits">
+      <section className="benefits section" aria-label="Destination Management System benefits">
         {benefits.map(({ icon: Icon, title, copy }) => (
           <article className="benefitCard" key={title}>
             <span className="smallIcon"><Icon /></span>
@@ -281,44 +385,46 @@ export default function ChannelManagerLandingPage() {
             <p>Move from a channel reservation to guest details, front desk tasks, invoices and reporting without losing operational context.</p>
             <a className="lightButton" href="#features">Explore the workflow <ArrowRight /></a>
           </div>
-          <OperationsPreview />
+          <div className="operationsStack" aria-label="Destination Management System Channel Manager screens">
+            <figure className="operationsShot operationsShotOverview">
+              <img
+                src="/assets/channel-manager-overview.png"
+                alt="Channel Manager overview showing active channels, reservations, revenue and booking sources"
+              />
+            </figure>
+            <figure className="operationsShot operationsShotSync">
+              <img
+                src="/assets/channel-manager-sync.png"
+                alt="Channel Manager availability, rate synchronization and integration status"
+              />
+            </figure>
+          </div>
         </div>
       </section>
 
-      <section className="proofSection section" id="workflow">
-        <div className="sectionIntro rowIntro">
-          <div>
-            <h2>A distribution workflow grounded in daily operations</h2>
-          </div>
-          <p>DMS Desk connects channel work with the records already used by reservations, rooms, rates and financial operations.</p>
+      <section className="workflowSection section" id="workflow">
+        <div className="workflowIntro">
+          <h2>Channel bookings go straight into your daily hotel work</h2>
+          <p>DMS is built to link the bookings you get from Booking.com, Expedia and Agoda to the same rooms, prices, guest records and invoices your team already uses.</p>
         </div>
-
-        <div className="proofCards">
-          <article className="proofCard">
-            <span className="quoteMark">“</span>
-            <h3>From availability to arrival</h3>
-            <p>A channel reservation should not stop at an inbox. DMS Desk is designed to carry the booking into inventory checks, guest records, invoicing and the front desk.</p>
-            <span className="proofLabel">RESERVATION WORKFLOW</span>
-          </article>
-          <article className="proofCard blueProof">
-            <span className="quoteMark">“</span>
-            <h3>Property context stays attached</h3>
-            <p>Room mappings, rates, reservations and operational records remain tied to the selected property so hotel teams can work with the right context.</p>
-            <span className="proofLabel">PROPERTY-AWARE DESIGN</span>
-          </article>
-        </div>
-
-        <div className="proofMetrics">
-          <div><strong>01</strong><span>shared PMS workspace</span></div>
-          <div><strong>Property-scoped</strong><span>rooms, rates and reservations</span></div>
-          <div><strong>End-to-end</strong><span>operational booking flow</span></div>
-        </div>
+        <ul className="workflowPoints">
+          <li>
+            <span className="workflowIcon"><Inbox aria-hidden="true" /></span>
+            <h3>Bookings don&rsquo;t wait in an inbox</h3>
+            <p>When a guest books on Agoda or Booking.com, DMS is designed to carry that booking into your availability, guest list, invoices and front desk, instead of someone copying it across by hand.</p>
+          </li>
+          <li>
+            <span className="workflowIcon"><Building2 aria-hidden="true" /></span>
+            <h3>Each hotel keeps its own data</h3>
+            <p>If you run more than one property, the room setup, prices, bookings and records for each hotel stay with that hotel, so your staff always see the right information.</p>
+          </li>
+        </ul>
       </section>
 
       <section className="featureSection section" id="features">
         <div className="sectionIntro centeredIntro">
           <h2>Clear visibility, practical controls and fewer disconnected steps</h2>
-          <p>Every section below reflects workflows planned for the DMS Desk Channel Manager preview and its connected PMS modules.</p>
+          <p>Every section below reflects workflows planned for Destination Management System and its connected PMS modules.</p>
         </div>
 
         <div
@@ -337,10 +443,10 @@ export default function ChannelManagerLandingPage() {
           <article className="featureCard featureLarge">
             <div className="featureCopy">
               <span className="featureNumber">01</span>
-              <h3>Room and rate mapping</h3>
-              <p>Organize PMS room types, channel room codes, rate plans and inventory sources in one configuration view.</p>
+              <h3>Room, rate and inventory mapping</h3>
+              <p>Connect PMS room types with channel room codes, rate plans and inventory sources in one configuration workflow.</p>
             </div>
-            <MappingPreview />
+            <div className="moduleArtwork"><MappingPreview /></div>
           </article>
 
           <article className="featureCard featureLarge">
@@ -349,36 +455,55 @@ export default function ChannelManagerLandingPage() {
               <h3>Inventory and sync overview</h3>
               <p>Review availability, pricing and update status by stay date before sending changes to connected providers.</p>
             </div>
-            <InventoryPreview />
+            <div className="moduleArtwork"><InventoryPreview /></div>
           </article>
 
           <article className="featureCard compactFeature">
-            <span className="smallIcon"><ShieldCheck /></span>
-            <h3>Validated reservation intake</h3>
-            <p>Check availability, saved rates and duplicate references before a channel reservation enters the PMS.</p>
-            <div className="miniStatusList">
-              <span><Check /> Inventory checked</span>
-              <span><Check /> Rate plan matched</span>
-              <span><Check /> Duplicate protected</span>
+            <div className="moduleCopy">
+            <span className="smallIcon"><ListChecks /></span>
+            <h3>Channel reservation review</h3>
+            <p>Turn every imported reservation into a clear next step—review guest details, stay dates, acknowledgement status and revision history.</p>
             </div>
+            <div className="moduleArtwork"><div className="reservationScreenshotPreview">
+              <img
+                src="/assets/channel-reservation-review.png"
+                alt="Reservation details showing status, OTA source, channel, reservation and revision identifiers"
+              />
+            </div></div>
           </article>
 
           <article className="featureCard compactFeature">
+            <div className="moduleCopy">
             <span className="smallIcon"><BarChart3 /></span>
             <h3>Channel performance context</h3>
-            <p>Compare booking sources with reservations, room nights, revenue, lead time and cancellation context.</p>
-            <MiniChart />
+            <p>Compare booking sources by reservation volume, booking value and revenue share.</p>
+            </div>
+            <div className="moduleArtwork"><div className="performanceScreenshotPreview">
+              <img
+                src="/assets/booking-sources.png"
+                alt="Booking Sources report comparing reservation count, booking value and revenue share by channel"
+              />
+            </div></div>
           </article>
 
-          <article className="featureCard compactFeature">
-            <span className="smallIcon"><MessageSquareText /></span>
-            <h3>Operational logs</h3>
-            <p>Give hotel teams one place to review sync requests, messages, results and exceptions.</p>
-            <div className="activityList">
-              <span><i className="activityDot successDot" />Inventory update completed</span>
-              <span><i className="activityDot" />Reservation received</span>
-              <span><i className="activityDot mutedDot" />Room mapping reviewed</span>
+          <article className="featureCard compactFeature directBookingCard">
+            <div className="moduleCopy">
+            <span className="smallIcon"><NetworkIcon /></span>
+            <h3>Direct Bookings &amp; Payments</h3>
+            <p>Reduce commission and simplify guest transactions.</p>
             </div>
+            <div className="moduleArtwork"><div className="directBookingVisual" aria-label="Direct booking connections to Booking.com, Agoda and Expedia">
+              <span className="directOrbit directOrbitOuter" aria-hidden="true" />
+              <span className="directOrbitTrack" aria-hidden="true" />
+              <span className="directOrbit directOrbitInner" aria-hidden="true" />
+              <span className="directOrbit directOrbitCenter" aria-hidden="true" />
+              <span className="directOrbitPlus directPlusLeft" aria-hidden="true" />
+              <span className="directOrbitPlus directPlusRight" aria-hidden="true" />
+              <span className="directBrand directBrandExpedia"><img src="/assets/expedia-icon.png" alt="Expedia" /></span>
+              <span className="directBrand directBrandBooking"><img src="/assets/booking-icon.png" alt="Booking.com" /></span>
+              <span className="directBrand directBrandAgoda"><img src="/assets/agoda-icon.png" alt="Agoda" /></span>
+              <span className="directOrbitCore"><img src="/assets/dms-mark.png" alt="Destination Management System" /></span>
+            </div></div>
           </article>
         </div>
       </section>
@@ -386,12 +511,26 @@ export default function ChannelManagerLandingPage() {
       <section className="section">
         <div className="networkBanner">
           <div>
-            <span className="inverseEyebrow">DMS DESK CHANNEL MANAGER</span>
-            <h2>Prepare your property for connected distribution</h2>
-            <p>See how rooms, rates, inventory and reservations can work together inside DMS Desk.</p>
+            
+            <h2><span>Prepare your</span><span>property for</span><span>connected distribution</span></h2>
+            <p>See how rooms, rates, inventory and reservations can work together inside Destination Management System.</p>
             <a className="lightButton" href="#request-demo">Join the preview <ArrowRight /></a>
           </div>
-          <ChannelNetwork />
+          <div className="bannerLaptop">
+            <div className="bannerLaptopScreen">
+              <video
+                src="/assets/dms-tour.mp4"
+                poster="/assets/dms-tour-poster.jpg"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="Product tour of Destination Management System"
+              />
+            </div>
+            <div className="bannerLaptopBase" aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -418,6 +557,40 @@ export default function ChannelManagerLandingPage() {
         </div>
       </section>
 
+      <section className="faqSection section" id="faq" aria-labelledby="faq-heading">
+        <div className="faqIntro">
+          <span className="eyebrow">A LITTLE MORE CLARITY</span>
+          <h2 id="faq-heading">Frequently asked questions</h2>
+          <p>Get to know DMS, your channel connections and the steps to getting started.</p>
+        </div>
+        <div className="faqList">
+          {faqs.map(({ question, answer }, index) => (
+            <div className="faqItem" data-open={openFaq === index} key={question}>
+              <h3 className="faqQuestion">
+                <button className="faqTrigger" type="button"
+                  id={`faq-question-${index}`} aria-expanded={openFaq === index}
+                  aria-controls={`faq-answer-${index}`}
+                  onClick={() => setOpenFaq((current) => current === index ? null : index)}>
+                  <span className="faqToggle" aria-hidden="true" />
+                  <span>{question}</span>
+                </button>
+              </h3>
+              <div className="faqPanel" id={`faq-answer-${index}`} role="region"
+                aria-labelledby={`faq-question-${index}`} aria-hidden={openFaq !== index}
+                inert={openFaq !== index}>
+                <div className="faqPanelClip">
+                  <div className="faqAnswer"><p>{answer}</p></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="faqHelp">
+          <p>Want to see how the pieces fit together?</p>
+          <a href="#features">Explore the modules <ArrowRight aria-hidden="true" /></a>
+        </div>
+      </section>
+
       <footer className="siteFooter">
         <div className="footerTop section">
           <div className="footerBrand">
@@ -429,16 +602,17 @@ export default function ChannelManagerLandingPage() {
             {footerColumns.map((column) => (
               <div key={column.title}>
                 <h3>{column.title}</h3>
-                {column.links.map((link) => <a href={link === "Channel Manager" ? "#top" : "#features"} key={link}>{link}</a>)}
+                {column.links.map((link) => <a href={link === "FAQ" ? "#faq" : link === "Channel Manager" ? "#top" : "#features"} key={link}>{link}</a>)}
               </div>
             ))}
           </div>
         </div>
         <div className="footerBottom section">
-          <span>© 2026 DMS Desk. Individual project preview.</span>
+          <span>© 2026 Destination Management System. Individual project preview.</span>
           <div><a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Cookies</a></div>
         </div>
       </footer>
+
     </main>
   );
 }
@@ -457,12 +631,12 @@ function HeroChannelWorkspace() {
         </div>
         <div className="channelLogoCard expediaCard"><span className="expediaSymbol"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z" /><path d="m7 15 8-7m-6 0h6v6" /></svg></span><strong>Expedia</strong></div>
         <div className="channelLogoCard agodaCard"><span>agoda</span><div className="agodaDots">{["#ff3654", "#ffbb00", "#00ad76", "#b620cd", "#00a9ed"].map(color => <i key={color} style={{ background: color }} />)}</div></div>
-        <div className="channelLogoCard deskCore"><img src="/assets/dms-desk-mark.png" alt="DMS Desk" /></div>
+        <div className="channelLogoCard deskCore"><img src="/assets/dms-mark.png" alt="DMS" /></div>
       </div>
       <div className="heroDashboard">
         <div className="dashboardChrome"><i /><i /><i /></div>
         <div className="dashboardInterior">
-          <aside className="dashboardSidebar"><strong><img src="/assets/dms-desk-mark.png" alt="" /> DMS Desk</strong>{[{ icon: Building2, name: "Dashboard" }, { icon: Network, name: "Channel Manager" }, { icon: BedDouble, name: "Inventory" }, { icon: CalendarDays, name: "Reservations" }, { icon: BarChart3, name: "Reports" }].map(({ icon: Icon, name }) => <span className={name === "Channel Manager" ? "selected" : ""} key={name}><Icon />{name}</span>)}</aside>
+          <aside className="dashboardSidebar"><strong><img src="/assets/dms-mark.png" alt="" /> DMS</strong>{[{ icon: Building2, name: "Dashboard" }, { icon: Network, name: "Channel Manager" }, { icon: BedDouble, name: "Inventory" }, { icon: CalendarDays, name: "Reservations" }, { icon: BarChart3, name: "Reports" }].map(({ icon: Icon, name }) => <span className={name === "Channel Manager" ? "selected" : ""} key={name}><Icon />{name}</span>)}</aside>
           <div className="dashboardMain"><h3>Channel Management</h3>
             <table className="channelSampleTable"><thead><tr><th>Channel</th><th>Status</th><th>Rooms</th><th>Rate sync</th></tr></thead><tbody>{[{ name: "Booking.com", initial: "B", rooms: 120 }, { name: "Airbnb", initial: "A", rooms: 85 }, { name: "Expedia", initial: "E", rooms: 100 }, { name: "Agoda", initial: "a", rooms: 78 }].map((channel, index) => <tr key={channel.name}><td><span className={`tableChannelMark channelMark${index}`}>{channel.initial}</span>{channel.name}</td><td><i className="connectedDot" />Connected</td><td>{channel.rooms}</td><td><span className="sampleToggle" aria-label="Enabled in preview" /></td></tr>)}</tbody></table>
             <div className="dashboardSummary"><BarChart3 /><div><span>Total Channel Reservations</span><strong>324 <small>↑ 12%</small></strong></div><div className="dashboardSparkBars" aria-hidden="true">{[20, 32, 29, 45, 56, 70].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div></div>
@@ -475,18 +649,16 @@ function HeroChannelWorkspace() {
 
 function BrandLockup() {
   return (
-    <a className="brand" href="#top" aria-label="DMS Desk home">
-      <span className="brandLockup" aria-hidden="true">
-        <img src="/assets/dms-desk-lockup.png" alt="" />
-      </span>
-      <span className="srOnly">DMS Desk</span>
+    <a className="brand brandFull" href="#top" aria-label="Destination Management System home">
+      <img className="brandFullLogo" src="/assets/dms-full-logo.png" alt="" aria-hidden="true" />
+      <span className="srOnly">Destination Management System</span>
     </a>
   );
 }
 
 function OperationsPreview() {
   return (
-    <div className="operationsPreview" aria-label="DMS Desk channel workflow preview">
+    <div className="operationsPreview" aria-label="Destination Management System channel workflow preview">
       <div className="previewTopbar"><span /><span /><span /><b>Channel activity</b></div>
       <div className="previewBody">
         <div className="previewSide">
@@ -513,28 +685,20 @@ function OperationsPreview() {
 
 function MappingPreview() {
   return (
-    <div className="mappingPreview">
-      <div className="mockToolbar"><span><Search /> Search mappings</span><button>+ Add mapping</button></div>
-      <div className="mappingHeader"><span>PMS room</span><span>Channel room</span><span>Status</span></div>
-      {[
-        ["Deluxe Double", "Agoda - DLX", "Mapped"],
-        ["Airport Transit", "Booking.com - ATR", "Mapped"],
-        ["Family Room", "Expedia - FAM", "Review"]
-      ].map((row) => (
-        <div className="mappingRow" key={row[0]}><span>{row[0]}</span><span>{row[1]}</span><b className={row[2] === "Mapped" ? "mapped" : "review"}>{row[2]}</b></div>
-      ))}
+    <div className="mappingScreenshotPreview">
+      <img src="/assets/room-rate-mapping.png" alt="Room and rate mapping controls and mapped PMS room types" />
+      
     </div>
   );
 }
 
 function InventoryPreview() {
-  const cells = [8, 7, 7, 5, 4, 6, 8, 120, 120, 125, 130, 130, 135, 140];
   return (
-    <div className="inventoryPreview">
-      <div className="inventoryHead"><b>Deluxe Double</b>{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <span key={day}>{day}</span>)}</div>
-      <div className="inventoryRow"><b>Available</b>{cells.slice(0, 7).map((cell, index) => <span key={index}>{cell}</span>)}</div>
-      <div className="inventoryRow rateRow"><b>Rate</b>{cells.slice(7).map((cell, index) => <span key={index}>${cell}</span>)}</div>
-      <div className="syncNotice"><RefreshCw /> Inventory preview ready <span>Review changes</span></div>
+    <div className="inventoryPreview inventoryScreenshotPreview">
+      <img
+        src="/assets/inventory-sync-overview.png"
+        alt="Inventory availability and rate synchronization by room and stay date"
+      />
     </div>
   );
 }
@@ -551,7 +715,7 @@ function MiniChart() {
 function ChannelNetwork() {
   return (
     <div className="channelNetwork" aria-label="Connected channel illustration">
-      <span className="networkCore"><img src="/assets/dms-desk-mark.png" alt="" /></span>
+      <span className="networkCore"><img src="/assets/dms-mark.png" alt="" /></span>
       <span className="networkNode nodeA">A</span>
       <span className="networkNode nodeB">B</span>
       <span className="networkNode nodeE">E</span>
