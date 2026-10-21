@@ -21,18 +21,18 @@ import {
   Inbox,
   Link2,
   ListChecks,
-  Menu,
   Network,
   ReceiptText,
   RefreshCw,
   SprayCan,
   Sparkles,
   Tags,
-  X,
   Zap
 } from "lucide-react";
 
 import { countries } from "./countries";
+import { SiteHeader } from "./components/site-header";
+import { planEnquiryLabel, pricingPlans, type BillingPeriod } from "./pricing/plans";
 
 import {
   NetworkIcon,
@@ -108,51 +108,23 @@ const footerColumns = [
   { title: "Platform", links: ["Dashboard", "Front Desk", "Reservations", "Rooms & Rates"] },
   { title: "Operations", links: ["Housekeeping", "Night Audit", "Financials", "Reports"] },
   { title: "Distribution", links: ["Channel Manager", "Travel Agents", "Booking Engine"] },
-  { title: "Company", links: ["About", "Contact", "FAQ", "Request Demo", "Sign in"] }
+  { title: "Company", links: ["About", "Contact", "Pricing", "FAQ", "Request Demo", "Sign in"] }
 ];
 
 export default function ChannelManagerLandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [planInterest, setPlanInterest] = useState("");
+  const [billingInterest, setBillingInterest] = useState<BillingPeriod>("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [country, setCountry] = useState<CountryCode>("LK");
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("LK");
 
   useEffect(() => {
-    let previousY = window.scrollY;
-    let frame = 0;
-
-    const updateHeader = () => {
-      frame = 0;
-      const currentY = window.scrollY;
-      setHeaderScrolled(currentY > 64);
-
-      if (currentY < 100 || menuOpen || document.activeElement?.closest(".siteHeader")) {
-        setHeaderVisible(true);
-        previousY = currentY;
-        return;
-      }
-
-      const movement = currentY - previousY;
-      if (Math.abs(movement) >= 8) {
-        setHeaderVisible(movement < 0);
-        previousY = currentY;
-      }
-    };
-
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateHeader);
-    };
-
-    updateHeader();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [menuOpen]);
+    const params = new URLSearchParams(window.location.search);
+    const plan = params.get("plan");
+    if (plan === "custom" || pricingPlans.some((item) => item.id === plan)) setPlanInterest(plan || "");
+    setBillingInterest(params.get("billing") === "yearly" ? "yearly" : "monthly");
+  }, []);
 
   function submitDemoRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -175,36 +147,7 @@ export default function ChannelManagerLandingPage() {
 
   return (
     <main className="siteShell">
-      <header
-        className={`siteHeader ${headerVisible ? "" : "siteHeaderHidden"} ${headerScrolled ? "siteHeaderScrolled" : ""}`}
-        style={{ backdropFilter: "blur(22px) saturate(1.35)", WebkitBackdropFilter: "blur(22px) saturate(1.35)" }}
-        onFocusCapture={() => setHeaderVisible(true)}
-      >
-        <div className="headerInner">
-          <BrandLockup />
-
-          <nav className={`mainNav ${menuOpen ? "mainNavOpen" : ""}`} aria-label="Primary navigation" style={{ backdropFilter: "blur(22px)", WebkitBackdropFilter: "blur(22px)" }} onClick={() => setMenuOpen(false)}>
-            <a href="#platform">Platform</a>
-            <a href="#features">Features</a>
-            <a href="#workflow">Workflow</a>
-            <a href="#resources">Resources</a>
-          </nav>
-
-          <div className="headerActions">
-            <a className="textLink" href="/login">Sign in</a>
-            <a className="primaryButton headerCta" href="#request-demo">Request a demo</a>
-            <button
-              className="menuButton"
-              type="button"
-              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((open) => !open)}
-            >
-              {menuOpen ? <X /> : <Menu />}
-            </button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="productHero" id="top">
         <div className="productHeroHead">
@@ -260,6 +203,9 @@ export default function ChannelManagerLandingPage() {
           <a className="demoExplore" href="#features">Prefer to look around first? Explore the modules <ArrowRight aria-hidden="true" /></a>
         </div>
         <form className="demoForm" id="request-demo" onSubmit={submitDemoRequest}>
+          {planInterest && <div className="pricingEnquiryNotice"><span>{planEnquiryLabel(planInterest, billingInterest)}</span><a href="/pricing">Change plan</a></div>}
+          <input type="hidden" name="subscriptionPlan" value={planInterest} />
+          <input type="hidden" name="billingPeriod" value={planInterest && planInterest !== "custom" ? billingInterest : ""} />
           <div className="formGrid">
             <label>
               <span className="fieldLabel">First name*</span>
@@ -602,7 +548,7 @@ export default function ChannelManagerLandingPage() {
             {footerColumns.map((column) => (
               <div key={column.title}>
                 <h3>{column.title}</h3>
-                {column.links.map((link) => <a href={link === "FAQ" ? "#faq" : link === "Channel Manager" ? "#top" : "#features"} key={link}>{link}</a>)}
+                {column.links.map((link) => <a href={link === "Pricing" ? "/pricing" : link === "FAQ" ? "#faq" : link === "Channel Manager" ? "#top" : "#features"} key={link}>{link}</a>)}
               </div>
             ))}
           </div>

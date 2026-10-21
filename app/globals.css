@@ -64,6 +64,7 @@ button { cursor: pointer; }
 .mainNav a, .textLink { transition: color .2s ease; }
 .mainNav a:hover, .textLink:hover { color: var(--sp-primary); }
 .siteHeader a:focus-visible, .siteHeader button:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 3px; }
+.mainNav a[aria-current="page"] { color: var(--sp-primary); text-decoration: underline; text-underline-offset: 7px; text-decoration-thickness: 2px; }
 .headerActions { display: flex; align-items: center; gap: 20px; }
 .textLink { font-size: 14px; font-weight: 700; }
 .primaryButton, .secondaryButton, .lightButton {
@@ -820,3 +821,39 @@ button { cursor: pointer; }
 
 .productBanner, .networkBanner { background: linear-gradient(120deg, #021a30 0%, #042b4c 48%, #296ca3 100%); }
 .inverseEyebrow { color: var(--sp-accent-light); }
+
+/* Pricing selection follows the visitor into the existing demo enquiry. */
+.pricingEnquiryNotice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; padding: 14px 16px; border: 1px solid #cddfed; border-radius: 12px; background: #edf5fb; color: var(--sp-primary); font-size: 12px; line-height: 1.6; }
+.pricingEnquiryNotice > span { flex: 1 1 220px; font-weight: 600; }
+.pricingEnquiryNotice > a { color: var(--sp-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* The additional Pricing item needs the compact navigation on small laptops. */
+@media (min-width: 981px) and (max-width: 1120px) {
+  .mainNav { position: absolute; left: 12px; right: 12px; top: calc(100% + 10px); display: none; flex-direction: column; align-items: stretch; gap: 0; border: 1px solid rgba(213,228,240,.82); border-radius: 22px; background: rgba(251,253,254,.96); padding: 10px; box-shadow: 0 20px 42px rgba(18,61,97,.16); }
+  .mainNavOpen { display: flex; }
+  .mainNav a { padding: 12px; }
+  .menuButton { display: grid; }
+  .headerActions { margin-left: auto; }
+}
+
+
+.faq-hover-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.faq-hover-right svg {
+  transition: transform 0.25s ease;
+}
+
+.faq-hover-right:hover svg,
+.faq-hover-right:focus-visible svg {
+  transform: translateX(5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-hover-right svg {
+    transition: none;
+  }
+}
